@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash of Space - Premium Dashboard v5</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #050914;
+            --panel-bg: rgba(16, 22, 40, 0.65);
+            --panel-border: rgba(0, 210, 255, 0.15);
+            --neon-blue: #00f0ff;
+            --neon-purple: #b026ff;
+            --text-main: #e2e8f0;
+            --text-muted: #8b9bb4;
+            --success: #00ff88;
+            --danger: #ff3366;
+            --warning: #f1c40f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(176, 38, 255, 0.08), transparent 25%);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 280px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-blue);
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 0 20px;
+            flex: 1;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover { background: rgba(0, 240, 255, 0.05); color: #fff; }
+        .nav-btn.active {
+            background: linear-gradient(90deg, rgba(0,240,255,0.15) 0%, transparent 100%);
+            color: var(--neon-blue);
+            border-left: 3px solid var(--neon-blue);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .exit-btn { margin-top: auto; color: var(--danger); }
+        .exit-btn:hover { background: rgba(255, 51, 102, 0.1); color: #fff; }
+
+        /* --- Army Tracker in Sidebar --- */
+        .army-tracker {
+            padding: 20px; margin: 20px; background: rgba(0,0,0,0.4);
+            border: 1px solid var(--panel-border); border-radius: 10px;
+        }
+        .army-tracker h3 { font-size: 1rem; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--panel-border); padding-bottom: 5px; }
+        .army-stat { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; margin-bottom: 10px; font-weight: 600; }
+        .val-highlight { color: var(--neon-blue); font-size: 1.3rem; text-shadow: 0 0 5px var(--neon-blue); }
+
+        /* --- Main Content & Topbar --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .topbar { background: var(--panel-bg); backdrop-filter: blur(10px); border-bottom: 1px solid var(--panel-border); padding: 15px 40px; display: flex; justify-content: flex-end; gap: 20px; z-index: 10; }
+        .resource { display: flex; flex-direction: column; background: rgba(0,0,0,0.4); padding: 5px 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); min-width: 120px; }
+        .res-top { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; font-weight: 700; }
+        .res-rate { font-size: 0.8rem; text-align: right; margin-top: 2px; }
+
+        .res-icon { font-size: 1.2rem; }
+        .color-energy { color: var(--warning); }
+        .color-ore { color: #a5b1c2; }
+        .color-metal { color: var(--neon-blue); }
+        .color-prog { color: var(--neon-purple); }
+
+        /* --- Screens --- */
+        .screen { padding: 40px; display: none; flex: 1; overflow-y: auto; }
+        .screen.active { display: block; animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        #basis { background-image: linear-gradient(rgba(5, 9, 20, 0.80), rgba(5, 9, 20, 0.95)), url('planet.png'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .section-title { font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; color: #fff; text-transform: uppercase; }
+        .section-desc { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 30px; }
+
+        /* --- Basis Grid --- */
+        .build-options { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .build-btn { background: rgba(16, 22, 40, 0.8); border: 1px solid var(--panel-border); color: var(--text-main); padding: 10px 15px; border-radius: 6px; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .build-btn:hover { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .build-btn.selected { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
+
+        .planet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .grid-slot { background: rgba(0, 0, 0, 0.6); border: 1px dashed var(--text-muted); border-radius: 12px; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; backdrop-filter: blur(5px); }
+        .grid-slot:hover { background: rgba(0, 240, 255, 0.15); border-color: var(--neon-blue); }
+        .grid-slot.built { border-style: solid; background: rgba(16, 22, 40, 0.9); border-color: var(--neon-purple); box-shadow: inset 0 0 20px rgba(176, 38, 255, 0.1); }
+        .slot-title { font-size: 1.2rem; font-weight: 600; color: var(--neon-blue); margin-top: 10px; }
+
+        /* --- Einheiten Cards --- */
+        .cards-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .unit-card { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 25px; backdrop-filter: blur(10px); transition: 0.3s; position: relative; }
+        .unit-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple)); }
+        .unit-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 240, 255, 0.1); }
+        .unit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .unit-title { font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .unit-level { font-size: 1rem; color: var(--warning); background: rgba(241, 196, 15, 0.1); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--warning); }
+        .unit-count-badge { background: rgba(0, 240, 255, 0.2); color: var(--neon-blue); padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid var(--neon-blue); }
+        .unit-desc { color: var(--text-muted); font-size: 1rem; margin-bottom: 20px; height: 40px; }
+        .unit-cost { display: flex; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 600; }
+        
+        .action-btn { width: 100%; padding: 12px; background: linear-gradient(45deg, #00d2ff, #3a7bd5); border: none; border-radius: 6px; color: #000; font-family: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .action-btn:hover { filter: brightness(1.2); box-shadow: 0 0 15px var(--neon-blue); }
+        .action-btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
+        .upgrade-btn { margin-top: 10px; background: linear-gradient(45deg, #8e44ad, var(--neon-purple)); color: #fff; }
+        .upgrade-btn:hover { filter: brightness(1.2); box-shadow: 0 0 15px var(--neon-purple); }
+
+        /* --- Settings --- */
+        .settings-card { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; padding: 30px; max-width: 600px; }
+        .settings-card h3 { color: var(--neon-blue); margin-bottom: 10px; font-size: 1.5rem; }
+        .settings-row { margin-bottom: 25px; }
+        .settings-label { display: block; color: var(--text-muted); margin-bottom: 10px; }
+
+        /* --- Map --- */
+        .map-container { display: flex; justify-content: center; align-items: center; height: 60vh; position: relative; }
+        .orbit { position: absolute; border: 1px dashed rgba(255,255,255,0.1); border-radius: 50%; pointer-events: none; }
+        .orbit-1 { width: 300px; height: 300px; animation: spin 40s linear infinite; }
+        .orbit-2 { width: 500px; height: 500px; animation: spin 60s linear infinite reverse; }
+        .orbit-3 { width: 700px; height: 700px; animation: spin 80s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .star-sun { width: 80px; height: 80px; background: radial-gradient(circle, #fff 0%, #f39c12 40%, #e67e22 100%); border-radius: 50%; box-shadow: 0 0 60px #f39c12; position: absolute; z-index: 5; pointer-events: auto; cursor: pointer; }
+        .planet-node { position: absolute; width: 30px; height: 30px; background: #34495e; border-radius: 50%; top: -15px; left: 50%; transform: translateX(-50%); cursor: pointer; transition: 0.3s; pointer-events: auto; z-index: 10; }
+        .planet-node:hover { transform: translateX(-50%) scale(1.5); box-shadow: 0 0 20px #fff; z-index: 20; }
+        .planet-node.player { background: var(--success); box-shadow: 0 0 20px var(--success); }
+        .planet-node.enemy { background: var(--danger); box-shadow: 0 0 20px var(--danger); }
+        .planet-label { position: absolute; top: 35px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; white-space: nowrap; opacity: 0; transition: 0.3s; pointer-events: none; }
+        .planet-node:hover .planet-label { opacity: 1; }
+
+        /* --- YENİ: PLANET MODAL (Gezegen Görev Paneli) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .planet-modal {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 12px; padding: 30px; width: 450px; max-width: 90%;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-header { margin-bottom: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 10px; }
+        .modal-title { font-size: 2rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .modal-dist { color: var(--neon-blue); font-size: 1.1rem; font-weight: 600; margin-top: 5px; }
+        
+        .modal-army-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .modal-army-box h4 { color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
+        
+        .modal-unit-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.1rem; }
+        .modal-unit-name { display: flex; align-items: center; gap: 8px; }
+        .modal-unit-count { font-weight: bold; color: #fff; }
+        
+        .modal-btn-cancel { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-top: 10px; }
+        .modal-btn-cancel:hover { background: rgba(255,255,255,0.1); box-shadow: none; }
+
+        /* --- Notifications --- */
+        .toast-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
+        .toast { background: rgba(16, 22, 40, 0.9); border-left: 4px solid var(--neon-blue); padding: 15px 25px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-weight: 600; animation: slideInRight 0.3s ease-out forwards; pointer-events: auto; }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.success { border-left-color: var(--success); }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">CLASH OF SPACE</div>
+        <div class="nav-menu">
+            <button class="nav-btn active" onclick="switchScreen('basis', this)"><span>🏢</span> Kolonie Basis</button>
+            <button class="nav-btn" onclick="switchScreen('einheiten', this)"><span>🚀</span> Militär & Flotte</button>
+            <button class="nav-btn" onclick="switchScreen('map', this)"><span>🌌</span> Systemkarte</button>
+            <button class="nav-btn" onclick="switchScreen('settings', this)"><span>⚙️</span> Einstellungen</button>
+            
+            <button class="nav-btn exit-btn" onclick="exitGame()"><span>🚪</span> Spiel beenden</button>
+        </div>
+
+        <!-- Army Tracker -->
+        <div class="army-tracker">
+            <h3>Deine Flotte</h3>
+            <div class="army-stat"><span>🤖 Roboter:</span> <span class="val-highlight" id="tracker-robot">0</span></div>
+            <div class="army-stat"><span>📦 Transporte:</span> <span class="val-highlight" id="tracker-transport">0</span></div>
+            <div class="army-stat"><span>⚔️ Schiffe:</span> <span class="val-highlight" id="tracker-ship">0</span></div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Topbar: Ressourcen -->
+        <header class="topbar">
+            <div class="resource" title="Energie ist nicht lagerbar. Zeigt Gesamtkapazität.">
+                <div class="res-top"><span class="res-icon">⚡</span> <span id="res-energy" class="color-energy">1000</span></div>
+                <div class="res-rate color-energy">Kapazität</div>
+            </div>
+            <div class="resource">
+                <div class="res-top"><span class="res-icon">🪨</span> <span id="res-ore" class="color-ore">1000</span></div>
+                <div class="res-rate color-ore" id="rate-ore">+0 / sek</div>
+            </div>
+            <div class="resource">
+                <div class="res-top"><span class="res-icon">🛠️</span> <span id="res-metal" class="color-metal">1000</span></div>
+                <div class="res-rate color-metal" id="rate-metal">+0 / sek</div>
+            </div>
+            <div class="resource">
+                <div class="res-top"><span class="res-icon">🔬</span> <span id="res-prog" class="color-prog">1000</span></div>
+                <div class="res-rate color-prog" id="rate-prog">+0 / sek</div>
+            </div>
+        </header>
+
+        <!-- SCREEN 1: Basis -->
+        <section id="basis" class="screen active">
+            <h1 class="section-title">Planetare Basis</h1>
+            <p class="section-desc">Errichte Gebäude, um deine saniyelik Ressourcenproduktion zu starten.</p>
+
+            <div class="build-options">
+                <button class="build-btn" onclick="selectBlueprint(this, 'Kraftwerk', '⚡ Energie')">Kraftwerk (50 Metall) -> +50 Energie</button>
+                <button class="build-btn" onclick="selectBlueprint(this, 'Mine', '🪨 Erze')">Mine (50 Metall) -> +10 Erz/s</button>
+                <button class="build-btn" onclick="selectBlueprint(this, 'Gießerei', '🛠️ Metall')">Gießerei (100 Metall) -> Erz zu Metall/s</button>
+                <button class="build-btn" onclick="selectBlueprint(this, 'Forschungslabor', '🔬 Fortschritt')">Labor (150 Metall) -> +2 Fortschritt/s</button>
+                <button class="build-btn" onclick="selectBlueprint(this, 'Roboterfabrik', '🤖 Fabrik')">Roboterfabrik (200 Metall)</button>
+                <button class="build-btn" onclick="selectBlueprint(this, 'Raumschiffwerft', '🚀 Werft')">Raumschiffwerft (200 Metall)</button>
+            </div>
+
+            <div class="planet-grid">
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+                <div class="grid-slot" onclick="constructBuilding(this)"><span style="font-size: 2rem; color: var(--text-muted)">+</span><div class="slot-title">Leerer Slot</div></div>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: Einheiten -->
+        <section id="einheiten" class="screen">
+            <h1 class="section-title">Militärproduktion</h1>
+            <p class="section-desc">Verwende Metall für Truppen und Fortschritt für Upgrades!</p>
+
+            <div class="cards-container">
+                <div class="unit-card">
+                    <div class="unit-header">
+                        <h2 class="unit-title">🤖 Kampfroboter <span class="unit-level" id="lvl-robot">Lv.1</span></h2>
+                        <span class="unit-count-badge" id="badge-robot">Besitz: 0</span>
+                    </div>
+                    <p class="unit-desc">Schwere Bodentruppen für planetare Eroberungen.</p>
+                    <div class="unit-cost"><span>Produktion:</span><span class="color-metal">50 🛠️ Metall</span></div>
+                    <button class="action-btn" id="btn-robot" onclick="buildUnit('Kampfroboter', 50, 'roboterfabrik', 'tracker-robot', 'badge-robot')">Benötigt Roboterfabrik</button>
+                    <button class="action-btn upgrade-btn" id="upg-robot" onclick="upgradeUnit('Kampfroboter', 'lvl-robot', 'upg-robot')">⬆️ Upgrade (100 🔬 Fortschritt)</button>
+                </div>
+
+                <div class="unit-card">
+                    <div class="unit-header">
+                        <h2 class="unit-title">📦 Transportschiff <span class="unit-level" id="lvl-transport">Lv.1</span></h2>
+                        <span class="unit-count-badge" id="badge-transport">Besitz: 0</span>
+                    </div>
+                    <p class="unit-desc">Transportiert Truppen zwischen Planeten.</p>
+                    <div class="unit-cost"><span>Produktion:</span><span class="color-metal">100 🛠️ Metall</span></div>
+                    <button class="action-btn" id="btn-transport" onclick="buildUnit('Transportschiff', 100, 'raumschiffwerft', 'tracker-transport', 'badge-transport')">Benötigt Raumschiffwerft</button>
+                    <button class="action-btn upgrade-btn" id="upg-transport" onclick="upgradeUnit('Transportschiff', 'lvl-transport', 'upg-transport')">⬆️ Upgrade (100 🔬 Fortschritt)</button>
+                </div>
+
+                <div class="unit-card">
+                    <div class="unit-header">
+                        <h2 class="unit-title">⚔️ Kampfschiff <span class="unit-level" id="lvl-ship">Lv.1</span></h2>
+                        <span class="unit-count-badge" id="badge-ship">Besitz: 0</span>
+                    </div>
+                    <p class="unit-desc">Verteidigt Transporte und greift Gegner an.</p>
+                    <div class="unit-cost"><span>Produktion:</span><span class="color-metal">150 🛠️ Metall</span></div>
+                    <button class="action-btn" id="btn-ship" onclick="buildUnit('Kampfschiff', 150, 'raumschiffwerft', 'tracker-ship', 'badge-ship')">Benötigt Raumschiffwerft</button>
+                    <button class="action-btn upgrade-btn" id="upg-ship" onclick="upgradeUnit('Kampfschiff', 'lvl-ship', 'upg-ship')">⬆️ Upgrade (100 🔬 Fortschritt)</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: Map -->
+        <section id="map" class="screen">
+            <h1 class="section-title">Sonnensystem Sektor 7</h1>
+            <p class="section-desc">Klicke auf einen Planeten, um taktische Informationen abzurufen und Flotten zu entsenden.</p>
+
+            <div class="map-container">
+                <div class="star-sun" onclick="notify('Der Zentralstern brennt hell.', 'info')"></div>
+                <!-- YENİ: onclick metodları openPlanetModal olarak değiştirildi -->
+                <div class="orbit orbit-1">
+                    <div class="planet-node player" onclick="openPlanetModal('Melisa', 'player')"><div class="planet-label">Melisa (Dein Planet)</div></div>
+                    <div class="planet-node" style="top: auto; bottom: -15px;" onclick="openPlanetModal('Hasse', 'empty')"><div class="planet-label">Hasse</div></div>
+                </div>
+                <div class="orbit orbit-2">
+                    <div class="planet-node" style="left: 0; top: 50%;" onclick="openPlanetModal('Gu', 'empty')"><div class="planet-label">Gu</div></div>
+                    <div class="planet-node" style="left: 100%; top: 50%;" onclick="openPlanetModal('Onur', 'empty')"><div class="planet-label">Onur</div></div>
+                </div>
+                <div class="orbit orbit-3">
+                    <div class="planet-node enemy" style="left: 15%; top: 15%;" onclick="openPlanetModal('Patricia', 'enemy')"><div class="planet-label">Patricia (Computer KI)</div></div>
+                    <div class="planet-node" style="left: 85%; bottom: 15%; top: auto;" onclick="openPlanetModal('Merkür', 'empty')"><div class="planet-label">Merkür</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: Settings -->
+        <section id="settings" class="screen">
+            <h1 class="section-title">Einstellungen</h1>
+            <p class="section-desc">Passe das Spiel an deine Vorlieben an.</p>
+            
+            <div class="settings-card">
+                <div class="settings-row">
+                    <h3>Schwierigkeitsgrad</h3>
+                    <span class="settings-label">Leicht: Computer startet auf 1 Planeten | Schwer: Computer startet auf 2 Planeten</span>
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <button class="action-btn" style="width: auto; padding: 10px 30px;" onclick="notify('Schwierigkeit: Leicht gewählt', 'success')">Leicht</button>
+                        <button class="action-btn" style="width: auto; padding: 10px 30px; background: var(--danger);" onclick="notify('Schwierigkeit: Schwer gewählt', 'error')">Schwer</button>
+                    </div>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid var(--panel-border); margin: 30px 0;">
+                
+                <div class="settings-row">
+                    <h3>Audio & Interface</h3>
+                    <div style="margin-top: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1rem; cursor: pointer;">
+                            <input type="checkbox" checked style="width: 20px; height: 20px;"> Hintergrundmusik
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; font-size: 1.1rem; cursor: pointer;">
+                            <input type="checkbox" checked style="width: 20px; height: 20px;"> Soundeffekte (UI)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- YENİ: GEZEGEN MODAL EKRANI -->
+    <div class="modal-overlay" id="planet-modal-overlay">
+        <div class="planet-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">🌍 Planet Name</h2>
+                <div class="modal-dist" id="modal-dist">Entfernung: 0 Lichtjahre</div>
+            </div>
+            
+            <div class="modal-army-box">
+                <h4>Verfügbare Flotte (Zum Entsenden)</h4>
+                <div class="modal-unit-row">
+                    <span class="modal-unit-name">🤖 Kampfroboter <span id="modal-lvl-robot" class="unit-level" style="font-size:0.8rem">Lv.1</span></span>
+                    <span class="modal-unit-count" id="modal-count-robot">0</span>
+                </div>
+                <div class="modal-unit-row">
+                    <span class="modal-unit-name">📦 Transportschiffe <span id="modal-lvl-transport" class="unit-level" style="font-size:0.8rem">Lv.1</span></span>
+                    <span class="modal-unit-count" id="modal-count-transport">0</span>
+                </div>
+                <div class="modal-unit-row">
+                    <span class="modal-unit-name">⚔️ Kampfschiffe <span id="modal-lvl-ship" class="unit-level" style="font-size:0.8rem">Lv.1</span></span>
+                    <span class="modal-unit-count" id="modal-count-ship">0</span>
+                </div>
+            </div>
+
+            <button class="action-btn" id="modal-action-btn">🚀 Flotte Entsenden</button>
+            <button class="action-btn modal-btn-cancel" onclick="closePlanetModal()">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // --- GAME STATE ---
+        let state = {
+            resources: { energy: 1000, ore: 1000, metal: 1000, progress: 1000 },
+            buildings: { Kraftwerk: 0, Mine: 0, Gießerei: 0, Forschungslabor: 0, Roboterfabrik: 0, Raumschiffwerft: 0 },
+            units: { Kampfroboter: 0, Transportschiff: 0, Kampfschiff: 0 },
+            unitLevels: { Kampfroboter: 1, Transportschiff: 1, Kampfschiff: 1 }
+        };
+
+        // --- GAME LOOP ---
+        setInterval(() => {
+            let oreRate = 0; let metalRate = 0; let progRate = 0;
+
+            if(state.buildings.Mine > 0) { oreRate = state.buildings.Mine * 10; state.resources.ore += oreRate; }
+            if(state.buildings.Gießerei > 0) {
+                let conversionCapacity = state.buildings.Gießerei * 10;
+                if(state.resources.ore >= conversionCapacity) {
+                    state.resources.ore -= conversionCapacity; metalRate = state.buildings.Gießerei * 5;
+                    state.resources.metal += metalRate; oreRate -= conversionCapacity;
+                } else if(state.resources.ore > 0) {
+                    metalRate = Math.floor(state.resources.ore / 2); state.resources.metal += metalRate;
+                    oreRate -= state.resources.ore; state.resources.ore = 0;
+                }
+            }
+            if(state.buildings.Forschungslabor > 0) { progRate = state.buildings.Forschungslabor * 2; state.resources.progress += progRate; }
+
+            updateResourceUI(oreRate, metalRate, progRate);
+            checkUnitButtons();
+        }, 1000);
+
+        function updateResourceUI(oreR = 0, metalR = 0, progR = 0) {
+            document.getElementById('res-energy').innerText = state.resources.energy;
+            document.getElementById('res-ore').innerText = state.resources.ore;
+            document.getElementById('rate-ore').innerText = (oreR >= 0 ? '+' : '') + oreR + ' / sek';
+            document.getElementById('res-metal').innerText = state.resources.metal;
+            document.getElementById('rate-metal').innerText = '+' + metalR + ' / sek';
+            document.getElementById('res-prog').innerText = state.resources.progress;
+            document.getElementById('rate-prog').innerText = '+' + progR + ' / sek';
+        }
+
+        // --- Navigation ---
+        function switchScreen(screenId, btnElement) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn:not(.exit-btn)').forEach(b => b.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        // --- Exit Game ---
+        function exitGame() {
+            if(confirm("Möchtest du das Spiel wirklich beenden? Alle ungespeicherten Daten gehen verloren.")) {
+                document.body.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background: var(--bg-dark);">
+                    <h1 style="color: var(--neon-blue); font-size: 3rem;">Clash of Space</h1><p style="color: var(--text-muted); font-size: 1.5rem;">Spiel beendet. Auf Wiedersehen!</p>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: var(--success); color: black; border: none; border-radius: 5px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">Neu Starten</button></div>`;
+            }
+        }
+
+        // --- Building Logic ---
+        let currentBlueprint = null; let currentIcon = null;
+
+        function selectBlueprint(btnElement, name, icon) {
+            document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('selected'));
+            btnElement.classList.add('selected'); currentBlueprint = name; currentIcon = icon;
+            notify(`${name} ausgewählt. Wähle einen leeren Slot.`);
+        }
+
+        function constructBuilding(slot) {
+            if (slot.classList.contains('built')) { notify("Bauplatz belegt!", "error"); return; }
+            if (!currentBlueprint) { notify("Wähle zuerst ein Gebäude!", "error"); return; }
+
+            let cost = 50; 
+            if(currentBlueprint === 'Gießerei') cost = 100;
+            if(currentBlueprint === 'Forschungslabor') cost = 150;
+            if(currentBlueprint === 'Roboterfabrik' || currentBlueprint === 'Raumschiffwerft') cost = 200;
+
+            if (state.resources.metal < cost) { notify(`Nicht genug Metall! (${cost} benötigt)`, "error"); return; }
+
+            state.resources.metal -= cost; state.buildings[currentBlueprint]++;
+            if(currentBlueprint === 'Kraftwerk') state.resources.energy += 50;
+
+            slot.classList.add('built');
+            slot.innerHTML = `<span style="font-size: 2.5rem;">${currentIcon.split(' ')[0]}</span><div class="slot-title">${currentBlueprint}</div>`;
+            notify(`${currentBlueprint} gebaut!`, "success");
+            
+            document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('selected')); currentBlueprint = null; updateResourceUI();
+        }
+
+        // --- Unit Production & Upgrade Logic ---
+        function checkUnitButtons() {
+            const btnRobot = document.getElementById('btn-robot');
+            if(state.buildings.Roboterfabrik > 0 && btnRobot.innerText.includes("Benötigt")) { btnRobot.innerText = "Produzieren"; }
+            
+            const btnTrans = document.getElementById('btn-transport'); const btnShip = document.getElementById('btn-ship');
+            if(state.buildings.Raumschiffwerft > 0) {
+                if(btnTrans.innerText.includes("Benötigt")) btnTrans.innerText = "Produzieren";
+                if(btnShip.innerText.includes("Benötigt")) btnShip.innerText = "Produzieren";
+            }
+        }
+
+        function buildUnit(unitName, cost, reqBuilding, trackerId, badgeId) {
+            if (reqBuilding === 'roboterfabrik' && state.buildings.Roboterfabrik === 0) { notify("Du musst zuerst eine Roboterfabrik bauen!", "error"); return; }
+            if (reqBuilding === 'raumschiffwerft' && state.buildings.Raumschiffwerft === 0) { notify("Du musst zuerst eine Raumschiffwerft bauen!", "error"); return; }
+
+            if (state.resources.metal >= cost) {
+                state.resources.metal -= cost; state.units[unitName]++;
+                document.getElementById(trackerId).innerText = state.units[unitName];
+                document.getElementById(badgeId).innerText = "Besitz: " + state.units[unitName];
+                updateResourceUI(); notify(`${unitName} produziert!`, "success");
+            } else { notify(`Nicht genug Metall!`, "error"); }
+        }
+
+        function upgradeUnit(unitName, labelId, btnId) {
+            let currentLevel = state.unitLevels[unitName];
+            let upgradeCost = currentLevel * 100;
+
+            if (state.resources.progress >= upgradeCost) {
+                state.resources.progress -= upgradeCost; state.unitLevels[unitName]++;
+                let newLevel = state.unitLevels[unitName]; let nextCost = newLevel * 100;
+
+                document.getElementById(labelId).innerText = "Lv." + newLevel;
+                document.getElementById(btnId).innerText = `⬆️ Upgrade (${nextCost} 🔬 Fortschritt)`;
+                updateResourceUI(); notify(`${unitName} auf Level ${newLevel} verbessert! Kampfkraft erhöht.`, "success");
+            } else { notify(`Nicht genug Fortschritt! (${upgradeCost} benötigt)`, "error"); }
+        }
+
+        // --- YENİ: GEZEGEN MODAL FONKSİYONLARI ---
+        function openPlanetModal(planetName, type) {
+            const overlay = document.getElementById('planet-modal-overlay');
+            const title = document.getElementById('modal-title');
+            const dist = document.getElementById('modal-dist');
+            const actionBtn = document.getElementById('modal-action-btn');
+
+            // Başlık ve Rastgele Uzaklık
+            title.innerText = (type === 'player' ? "🏡 " : (type === 'enemy' ? "☠️ " : "🪐 ")) + planetName;
+            
+            if (type === 'player') {
+                dist.innerText = "Entfernung: 0 Lichtjahre (Heimat)";
+            } else {
+                // 50 ile 900 arasında rastgele bir uzaklık üretir
+                const randomDist = Math.floor(Math.random() * 850) + 50;
+                dist.innerText = `Entfernung: ${randomDist} Lichtjahre`;
+            }
+
+            // Güncel Ordu ve Seviye Bilgilerini Ekrana Yaz
+            document.getElementById('modal-count-robot').innerText = state.units.Kampfroboter;
+            document.getElementById('modal-lvl-robot').innerText = "Lv." + state.unitLevels.Kampfroboter;
+            
+            document.getElementById('modal-count-transport').innerText = state.units.Transportschiff;
+            document.getElementById('modal-lvl-transport').innerText = "Lv." + state.unitLevels.Transportschiff;
+            
+            document.getElementById('modal-count-ship').innerText = state.units.Kampfschiff;
+            document.getElementById('modal-lvl-ship').innerText = "Lv." + state.unitLevels.Kampfschiff;
+
+            // Buton Dinamiği
+            if (type === 'player') {
+                actionBtn.innerText = "🛡️ Flotte Stationieren";
+                actionBtn.style.background = "var(--success)";
+                actionBtn.onclick = () => { notify("Flotte ist bereits in der Heimat stationiert.", "info"); closePlanetModal(); };
+            } else if (type === 'enemy') {
+                actionBtn.innerText = "⚔️ Angreifen";
+                actionBtn.style.background = "linear-gradient(45deg, #ff3366, #990033)";
+                actionBtn.onclick = () => { executeAttack(planetName); };
+            } else {
+                actionBtn.innerText = "🚀 Kolonisieren / Entsenden";
+                actionBtn.style.background = "linear-gradient(45deg, #00d2ff, #3a7bd5)";
+                actionBtn.onclick = () => { executeColonize(planetName); };
+            }
+
+            overlay.style.display = 'flex';
+        }
+
+        function closePlanetModal() {
+            document.getElementById('planet-modal-overlay').style.display = 'none';
+        }
+
+        function executeAttack(targetName) {
+            if (state.units.Kampfroboter === 0 && state.units.Kampfschiff === 0) {
+                notify("Du hast keine Kampfeinheiten für einen Angriff!", "error");
+            } else {
+                notify(`Angriffsflotte mit voller Stärke nach ${targetName} entsendet!`, "error");
+                closePlanetModal();
+            }
+        }
+
+        function executeColonize(targetName) {
+            if (state.units.Transportschiff === 0) {
+                notify("Du benötigst mindestens ein Transportschiff zur Kolonisierung!", "error");
+            } else {
+                notify(`Kolonisationsflotte nach ${targetName} entsendet!`, "success");
+                closePlanetModal();
+            }
+        }
+
+        // --- Notify ---
+        function notify(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`; toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
+        }
+        
+        // Initialer Aufruf
+        updateResourceUI();
+    </script>
+</body>
+</html>
